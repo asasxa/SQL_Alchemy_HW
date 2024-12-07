@@ -45,34 +45,30 @@ def load_data():
             print(f"Ошибка при сохранении изменений: {e}")
             session.rollback()
 
-def get_purchases_by_publisher(publisher_name):
+def get_shops(publisher_input):
     with Session() as session:
-        publisher = session.query(Publisher).filter_by(name=publisher_name).first()
+        results = session.query(
+            Book.title,
+            Shop.name,
+            Sale.price,
+            Sale.date_sale
+        ).select_from(Shop).\
+            join(Stock).\
+            join(Book).\
+            join(Publisher).\
+            join(Sale)
 
-        if publisher:
-            results = (session.query(
-                Book.title,
-                Shop.name,
-                Sale.price,
-                Sale.date_sale
-            )
-            .select_from(Sale)  
-            .join(Stock)
-            .join(Book)
-            .join(Shop)  
-            .filter(Book.id_publisher == publisher.id)
-            .all())
-
-            print(f"Факты покупки книг издателя '{publisher.name}':")
-            for title, shop_name, price, date in results:
-                print(f"{title} | {shop_name} | {price} | {date.strftime('%d-%m-%Y')}")
+        if publisher_input.isdigit():  
+            results = results.filter(Publisher.id == int(publisher_input)).all()
         else:
-            print("Издатель не найден")
+            results = results.filter(Publisher.name == publisher_input).all()
 
+        for title, shop_name, price, date in results:
+            print(f"{title: <40} | {shop_name: <10} | {price: <8} | {date.strftime('%d-%m-%Y')}")
 
 if __name__ == "__main__":
     create_tables(engine)
     load_data()
-    publisher_name = input("Введите имя издателя: ")
-    get_purchases_by_publisher(publisher_name)
+    publisher_input = input("Введите имя или ID издателя: ")  
+    get_shops(publisher_input)
     drop_tables(engine)
